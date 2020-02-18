@@ -262,17 +262,17 @@ class GCalSide(GenericSide):
         Usage::
 
         >>> GCalSide.parse_datetime('2019-03-05T00:03:09Z')
-        datetime.datetime(2019, 3, 5, 0, 3, 9)
+        datetime.datetime(2019, 3, 5, 0, 3, 9, tzinfo=tzutc())
         >>> GCalSide.parse_datetime('2019-03-05')
         datetime.datetime(2019, 3, 5, 0, 0)
         >>> GCalSide.parse_datetime('2019-03-05T00:03:01.1234Z')
-        datetime.datetime(2019, 3, 5, 0, 3, 1, 123400)
+        datetime.datetime(2019, 3, 5, 0, 3, 1, 123400, tzinfo=tzutc())
         >>> GCalSide.parse_datetime('2019-03-08T00:29:06.602Z')
-        datetime.datetime(2019, 3, 8, 0, 29, 6, 602000)
+        datetime.datetime(2019, 3, 8, 0, 29, 6, 602000, tzinfo=tzutc())
         """
 
         assert isinstance(dt, str)
-        return dateutil.parser.parse(dt).replace(tzinfo=None)
+        return dateutil.parser.parse(dt).replace()
 
     @staticmethod
     def _sanitize_all_datetimes(item: dict) -> None:

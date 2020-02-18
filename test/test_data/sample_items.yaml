@@ -46,7 +46,7 @@ gcal_item_w_date:
   reminders: {useDefault: true}
   sequence: 0
   start: {date: '2019-03-08'}
-  status: confirmed
+    status: confirmed
   summary: gcal original event
   transparency: transparent
   updated: '2019-03-16T16:01:32.486Z'
