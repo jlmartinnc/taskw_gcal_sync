@@ -13,6 +13,13 @@ from taskw_gcal_sync.TWGCalAggregator import ItemType, TWGCalAggregator
     help="Name of the Google Calendar to sync (will be created if not there)",
 )
 @click.option(
+    "--gcal-secret",
+    required=False,
+    default=None,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    help="Override the client secret used for the communication with the Google Calendar API",
+)
+@click.option(
     "-t",
     "--taskwarrior-tag",
     "tw_tags",
@@ -33,7 +40,7 @@ from taskw_gcal_sync.TWGCalAggregator import ItemType, TWGCalAggregator
     help="Specify ascending/descending order for the order-by option",
 )
 @click.option("-v", "--verbose", count=True, default=0)
-def main(gcal_calendar, tw_tags, order_by, ascending_order, verbose):
+def main(gcal_calendar, gcal_secret, tw_tags, order_by, ascending_order, verbose):
     """Main."""
     setup_logger(verbosity=verbose)
     if len(tw_tags) != 1:
@@ -41,10 +48,12 @@ def main(gcal_calendar, tw_tags, order_by, ascending_order, verbose):
 
     logger.info("Initialising...")
     tw_config = {"tags": list(tw_tags)}
+
     gcal_config = {"calendar_summary": gcal_calendar}
+    if gcal_secret:
+        gcal_config["client_secret"] = gcal_secret
 
     with TWGCalAggregator(tw_config=tw_config, gcal_config=gcal_config) as aggregator:
-
         aggregator.start()
 
         # Check and potentially register items

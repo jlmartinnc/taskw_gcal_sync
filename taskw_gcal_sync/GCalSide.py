@@ -2,7 +2,7 @@ import datetime
 import os
 import pickle
 from pathlib import Path
-from typing import Union, Literal
+from typing import Literal, Union
 
 import dateutil
 import pkg_resources
@@ -35,11 +35,12 @@ class GCalSide(GenericSide):
         self.config = {
             "calendar_summary": "TaskWarrior Reminders",
             "calendar_id": None,
-            "client_secret_file": pkg_resources.resource_filename(
-                "taskw_gcal_sync", os.path.join("res", "gcal_client_secret.json")
-            ),
             "credentials_cache": Path.home() / ".gcal_credentials.pickle",
+            "client_secret": pkg_resources.resource_filename(
+                __name__, os.path.join("res", "gcal_client_secret.json")
+            ),
         }
+        self._default_client_secret: str = self.config["client_secret"]
         self.config.update(kargs)
 
         # If you modify this, delete your previously saved credentials
@@ -47,18 +48,19 @@ class GCalSide(GenericSide):
 
     @overrides
     def start(self):
-        # connect
-        logger.info("Connecting...")
+        logger.debug("Connecting to Google Calendar...")
         self.gain_access()
         self.config["calendar_id"] = self._fetch_cal_id()
-        # Create calendar if not there
+
+        # Create calendar if not there --------------------------------------------------------
         if not self.config["calendar_id"]:
             logger.info('Creating calendar "%s"' % self.config["calendar_summary"])
             new_cal = {"summary": self.config["calendar_summary"]}
             ret = self.service.calendars().insert(body=new_cal).execute()  # type: ignore
             logger.info("Created, id: %s" % ret["id"])
             self.config["calendar_id"] = ret["id"]
-        logger.info("Connected.")
+
+        logger.debug("Connected to Google Calendar.")
 
     def _fetch_cal_id(self):
         """Return the id of the Calendar based on the given Summary.
@@ -165,24 +167,25 @@ class GCalSide(GenericSide):
         creds = None
         credentials_cache = self.config["credentials_cache"]
         if credentials_cache.is_file():
-            with credentials_cache.open("rb") as token:
-                creds = pickle.load(token)
+            with credentials_cache.open("rb") as f:
+                creds = pickle.load(f)
 
         if not creds or not creds.valid:
-            logger.info("Invalid credentials. Fetching them...")
+            logger.info("Invalid credentials. Fetching again...")
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                client_secret = pkg_resources.resource_filename(
-                    __name__, os.path.join("res", "gcal_client_secret.json")
-                )
+                client_secret = self.config["client_secret"]
+                if client_secret != self._default_client_secret:
+                    logger.info(f"Using custom client secret -> {client_secret}")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     client_secret, GCalSide.SCOPES
                 )
                 creds = flow.run_local_server()
+
             # Save the credentials for the next run
-            with credentials_cache.open("wb") as token:
-                pickle.dump(creds, token)
+            with credentials_cache.open("wb") as f:
+                pickle.dump(creds, f)
         else:
             logger.info("Using already cached credentials...")
 
